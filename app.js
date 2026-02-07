@@ -154,10 +154,13 @@
   function contextScreen() {
     return (
       "<section id=\"screen-context\" class=\"screen screen-context\">" +
-        "<div class=\"screen-inner card\">" +
-          "<h2 class=\"card-title\">Nivel 1 — Problemas visibles</h2>" +
-          "<p class=\"card-text\">Cada carta describe un problema típico de producto. Elegí una opción y verás cómo impactan en conversión, tickets, satisfacción, salud del negocio y deuda UX. La deuda UX al final de cada turno genera un efecto en las demás métricas.</p>" +
-          "<button type=\"button\" id=\"btn-context-continue\" class=\"btn btn-primary\">Continuar</button>" +
+        "<div class=\"screen-inner intro-board\">" +
+          "<div class=\"intro-card\">" +
+            "<span class=\"intro-badge\" aria-hidden=\"true\">Nivel 1</span>" +
+            "<h2 class=\"intro-title\">Nivel 1 — Problemas visibles</h2>" +
+            "<p class=\"intro-subtitle context-text\">Cada carta describe un problema típico de producto. Elegí una opción y verás cómo impactan en conversión, tickets, satisfacción, salud del negocio y deuda UX. La deuda UX al final de cada turno genera un efecto en las demás métricas.</p>" +
+            "<button type=\"button\" id=\"btn-context-continue\" class=\"btn btn-primary intro-cta\">Continuar</button>" +
+          "</div>" +
         "</div>" +
       "</section>"
     );

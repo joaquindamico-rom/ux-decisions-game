@@ -17,15 +17,16 @@
   --sem-green: #15803d;
   --sem-yellow: #a16207;
   --sem-red: #b91c1c;
-  /* INTRO V2 — juego de cartas / neobrut moderado */
+  /* INTRO V2 — juego de cartas / mesa digital (referencia) */
   --table-bg: #f4f0e8;
   --paper: #faf8f4;
   --ink: #1c1b16;
   --border-strong: #1c1b16;
   --border-soft: #c9c4b8;
-  --accent: #f3c614;
+  --accent: #e6c229;
   --shadow-hard: 4px 4px 0 rgba(0, 0, 0, 0.12);
   --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-card: 0 4px 14px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 *,
@@ -196,10 +197,10 @@ body {
 /* INTRO V2 — light mesa, carta física, neobrut moderado (solo .screen-intro) */
 .screen-intro {
   background-color: var(--table-bg);
-  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.012) 0%, transparent 50%),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px),
-    linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px);
-  background-size: 100% 100%, 12px 12px, 12px 12px;
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.008) 0%, transparent 50%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.015) 1px, transparent 1px),
+    linear-gradient(rgba(0, 0, 0, 0.015) 1px, transparent 1px);
+  background-size: 100% 100%, 14px 14px, 14px 14px;
 }
 
 .screen-intro .intro-board {
@@ -208,17 +209,19 @@ body {
 }
 
 .screen-intro .intro-card {
-  border: 3px solid var(--border-strong);
+  border: 2px solid var(--border-strong);
   border-radius: 16px;
   background: var(--paper);
-  box-shadow: var(--shadow-hard), var(--shadow-soft);
+  box-shadow: var(--shadow-card);
   padding: 2rem 1.75rem;
-  text-align: center;
+  text-align: left;
   position: relative;
 }
 
 .screen-intro .intro-badge {
-  display: inline-block;
+  display: block;
+  width: fit-content;
+  margin: 0 auto 1rem;
   padding: 0.25rem 0.75rem;
   background: var(--accent);
   border: 2px solid var(--border-strong);
@@ -227,7 +230,7 @@ body {
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--ink);
-  margin-bottom: 1rem;
+  text-align: center;
 }
 
 .screen-intro .intro-title {
@@ -237,6 +240,7 @@ body {
   letter-spacing: -0.03em;
   color: var(--ink);
   line-height: 1.15;
+  text-align: left;
 }
 
 @media (min-width: 480px) {
@@ -248,9 +252,10 @@ body {
 .screen-intro .intro-subtitle {
   margin: 0.75rem 0 0;
   color: var(--ink);
-  opacity: 0.7;
+  opacity: 0.8;
   font-size: 1rem;
   line-height: 1.5;
+  text-align: left;
 }
 
 .screen-intro .intro-bullets {
@@ -258,7 +263,6 @@ body {
   padding: 0 0 0 1.5rem;
   text-align: left;
   max-width: 26rem;
-  margin-left: auto;
   margin-right: auto;
   color: var(--ink);
   opacity: 0.85;
@@ -276,11 +280,11 @@ body {
   content: "";
   position: absolute;
   left: -1.25rem;
-  top: 0.45em;
+  top: 0.5em;
   width: 6px;
   height: 6px;
-  background: var(--border-strong);
-  border-radius: 1px;
+  background: var(--ink);
+  border-radius: 0;
 }
 
 .screen-intro .intro-bullets li:last-child {
@@ -310,15 +314,15 @@ body {
   border: 2px solid var(--border-strong);
   border-radius: 12px;
   background: var(--paper);
-  box-shadow: var(--shadow-soft);
+  box-shadow: none;
 }
 
 .screen-intro .preview-card .preview-line {
   height: 1.75rem;
   margin-bottom: 0.5rem;
   border-radius: 4px;
-  border: 1px solid var(--border-soft);
-  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-strong);
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .screen-intro .preview-chart.preview-tablero {
@@ -329,9 +333,9 @@ body {
   border: 2px solid var(--border-strong);
   border-radius: 12px;
   background: var(--paper);
-  box-shadow: var(--shadow-soft);
+  box-shadow: none;
   color: var(--ink);
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 .screen-intro .preview-chart.preview-tablero svg {
@@ -340,26 +344,28 @@ body {
 }
 
 .screen-intro .intro-cta {
-  margin-top: 2rem;
+  display: block;
+  width: fit-content;
+  margin: 2rem auto 0;
   padding: 0.75rem 1.75rem;
   background: var(--accent);
   border: 2px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: 999px;
   color: var(--ink);
   font-weight: 700;
   font-size: 1.0625rem;
-  box-shadow: var(--shadow-hard);
+  box-shadow: var(--shadow-card);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .screen-intro .intro-cta:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 .screen-intro .intro-cta:active {
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.12);
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .screen-intro .intro-cta:focus-visible {
@@ -489,13 +495,24 @@ body {
   font-size: 0.8125rem;
 }
 
-/* Context screen */
-.screen-context .card-text {
-  margin-top: 1.25rem;
+/* Context screen — mismos estilos que intro (carta física, mesa, acento) */
+.screen-context {
+  background-color: var(--table-bg);
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.008) 0%, transparent 50%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.015) 1px, transparent 1px),
+    linear-gradient(rgba(0, 0, 0, 0.015) 1px, transparent 1px);
+  background-size: 100% 100%, 14px 14px, 14px 14px;
 }
 
-.screen-context .btn-primary {
-  margin-top: 2.5rem;
+.screen-context .intro-card {
+  text-align: left;
+}
+
+.screen-context .intro-subtitle.context-text {
+  margin-top: 1rem;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 /* Game screen */
