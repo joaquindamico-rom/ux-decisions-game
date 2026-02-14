@@ -75,7 +75,15 @@ body {
 /* Screens: una visible a la vez */
 .screen {
   min-height: 100vh;
-  padding: 2rem 1.5rem;
+  min-height: 100dvh;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+@media (min-width: 480px) {
+  .screen {
+    padding: 2rem 1.5rem;
+  }
 }
 
 .screen-inner {
@@ -537,6 +545,12 @@ body {
 
 /* Game screen */
 .game-wrap {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
   max-width: 56rem;
   margin: 0 auto;
 }
@@ -545,8 +559,16 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
   padding: 0.75rem 1rem;
+}
+
+@media (min-width: 480px) {
+  .game-header {
+    margin-bottom: 1.5rem;
+  }
 }
 
 .header-level {
@@ -559,153 +581,107 @@ body {
   color: var(--text-muted);
 }
 
-.game-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-}
-
-@media (min-width: 768px) {
-  .game-grid {
-    grid-template-columns: minmax(0, 1fr) 220px;
-  }
-}
-
+/* Game grid — reset estable */
 .screen-game .game-grid {
   flex: 1;
   min-height: 0;
   display: grid;
+  gap: 16px;
   grid-template-columns: 1fr;
-  grid-template-rows: 1fr;
-  gap: 1.25rem;
+  grid-template-rows: auto 1fr;
+  grid-template-areas: "metrics" "card";
 }
 
 @media (min-width: 768px) {
   .screen-game .game-grid {
-    grid-template-columns: minmax(0, 1fr) 220px;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    grid-template-rows: 1fr;
     grid-template-areas: "card metrics";
-    gap: 1.5rem;
-  }
-
-  .screen-game .game-grid > #card-flip-container {
-    grid-area: card;
-  }
-
-  .screen-game .game-grid > .dashboard-panel {
-    grid-area: metrics;
+    align-items: start;
   }
 }
 
 .screen-game .game-grid > #card-flip-container {
-  min-height: 280px;
-  overflow: hidden;
-  display: flex;
+  grid-area: card;
+  min-height: 0;
 }
 
 .screen-game .game-grid > .dashboard-panel {
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  grid-area: metrics;
 }
 
 .dashboard-panel {
-  position: relative;
-}
-
-/* Desktop: panel métricas entra completo en viewport, sin scroll */
-@media (min-width: 768px) {
-  .screen-game .game-grid > .dashboard-panel {
-    max-height: 100%;
-    overflow: hidden;
-  }
-
-  .screen-game .game-grid > .dashboard-panel .metrics-list {
-    overflow: visible;
-    flex: 0 1 auto;
-    min-height: 0;
-  }
-}
-
-@media (max-width: 767px) {
-  .screen-game .game-grid {
-    flex-direction: column;
-    display: flex;
-  }
-
-  .screen-game .game-grid > .dashboard-panel {
-    order: -1;
-    flex: 0 0 auto;
-    max-height: 38vh;
-    overflow: hidden;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
-  .screen-game .game-grid > .dashboard-panel .metrics-list {
-    overflow-y: auto;
-  }
-
-  .screen-game .game-grid > #card-flip-container {
-    order: 0;
-    flex: 1 1 auto;
-    min-height: 0;
-  }
+  min-height: 0;
 }
 
 /* Card flip 3D — rotateY horizontal */
 .card-flip-container {
   position: relative;
   perspective: 1000px;
-  min-height: 280px;
-  flex: 1;
+  min-height: 0;
+  min-width: 0;
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
 }
 
-@media (min-width: 768px) {
-  .card-flip-container {
-    min-height: 320px;
-  }
-}
-
-.card-flip-inner {
+.card-flip-inner,
+.card-flip {
   position: relative;
   width: 100%;
-  min-height: 280px;
+  height: 100%;
+  min-height: 0;
   flex: 1;
+  display: flex;
+  flex-direction: column;
   transform-style: preserve-3d;
   transition: transform 0.3s ease;
 }
 
-.card-flip-inner.is-flipped {
+.card-flip-inner.is-flipped,
+.card-flip.is-flipped {
   transform: rotateY(180deg);
 }
 
-.card-face {
-  position: absolute;
-  inset: 0;
+/* Front: flujo normal; scroll interno en opciones */
+.card-face.card-front {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-}
-
-.card-face.card-front {
   transform: rotateY(0deg);
 }
 
 .card-face.card-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   transform: rotateY(180deg);
 }
 
 .card-face .card,
 .card-face .game-card {
-  height: 100%;
-  min-height: 200px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scroll interno SOLO en la zona de opciones cuando la carta es larga */
+.card-face.card-front .game-card {
   overflow-y: auto;
 }
 
+.card-face.card-front .game-card .options {
+  flex-shrink: 0;
+}
+
 .card-face.card-back .card-back-inner.game-card {
+  height: 100%;
   border: 3px solid var(--border-strong);
   border-radius: 16px;
   background: var(--paper);
@@ -713,8 +689,7 @@ body {
 }
 
 .card-back-inner {
-  height: 100%;
-  min-height: 200px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -750,18 +725,24 @@ body {
 }
 
 .options {
-  margin-top: 1.5rem;
+  margin-top: 1rem;
   display: grid;
   gap: 0.5rem;
 }
 
-/* GAME SCREEN V2 — juego de cartas de mesa (mismo lenguaje que INTRO V2) */
+@media (min-width: 480px) {
+  .options {
+    margin-top: 1.5rem;
+  }
+}
+
+/* GAME SCREEN V2 — layout estable */
 .screen-game {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  padding: 1rem 1.5rem;
-  overflow: hidden;
+  padding: 1rem;
+  overflow-x: hidden;
   background-color: var(--table-bg);
   background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.012) 0%, transparent 50%),
     linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px),
@@ -782,7 +763,13 @@ body {
   border-radius: 12px;
   background: var(--paper);
   box-shadow: var(--shadow-hard), var(--shadow-soft);
-  padding: 0.875rem 1.25rem;
+  padding: 0.625rem 1rem;
+}
+
+@media (min-width: 480px) {
+  .screen-game .game-header {
+    padding: 0.875rem 1.25rem;
+  }
 }
 
 .screen-game .header-badge {
@@ -843,12 +830,12 @@ body {
   border-radius: 16px;
   background: var(--paper);
   box-shadow: var(--shadow-hard), var(--shadow-soft);
-  padding: 1.75rem 1.5rem;
+  padding: 1rem 1.25rem;
 }
 
 @media (min-width: 480px) {
   .screen-game .game-card {
-    padding: 2rem 2.25rem;
+    padding: 1.5rem 2rem;
   }
 }
 
