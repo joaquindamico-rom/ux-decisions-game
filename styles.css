@@ -38,6 +38,7 @@
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   background-color: var(--bg);
   color: var(--text);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -575,6 +576,7 @@ body {
   min-height: 0;
   display: grid;
   grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
   gap: 1.25rem;
 }
 
@@ -595,7 +597,7 @@ body {
 }
 
 .screen-game .game-grid > #card-flip-container {
-  min-height: 0;
+  min-height: 280px;
   overflow: hidden;
   display: flex;
 }
@@ -654,23 +656,30 @@ body {
 
 /* Card flip 3D — rotateY horizontal */
 .card-flip-container {
+  position: relative;
   perspective: 1000px;
-  min-height: 0;
+  min-height: 280px;
   flex: 1;
   display: flex;
   align-items: stretch;
 }
 
+@media (min-width: 768px) {
+  .card-flip-container {
+    min-height: 320px;
+  }
+}
+
 .card-flip-inner {
   position: relative;
   width: 100%;
-  min-height: 200px;
+  min-height: 280px;
   flex: 1;
   transform-style: preserve-3d;
   transition: transform 0.3s ease;
 }
 
-.card-flip-inner.flipped {
+.card-flip-inner.is-flipped {
   transform: rotateY(180deg);
 }
 
@@ -692,6 +701,7 @@ body {
 .card-face .card,
 .card-face .game-card {
   height: 100%;
+  min-height: 200px;
   overflow-y: auto;
 }
 
@@ -704,6 +714,7 @@ body {
 
 .card-back-inner {
   height: 100%;
+  min-height: 200px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -750,6 +761,7 @@ body {
   display: flex;
   flex-direction: column;
   padding: 1rem 1.5rem;
+  overflow: hidden;
   background-color: var(--table-bg);
   background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.012) 0%, transparent 50%),
     linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px),

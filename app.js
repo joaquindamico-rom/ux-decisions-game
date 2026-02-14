@@ -408,7 +408,7 @@
         if (inner) {
           requestAnimationFrame(function () {
             requestAnimationFrame(function () {
-              inner.classList.add("flipped");
+              inner.classList.add("is-flipped");
             });
           });
         }
@@ -463,7 +463,7 @@
       btnImpactContinue.addEventListener("click", function () {
         var inner = document.getElementById("card-flip-inner");
         if (inner) {
-          inner.classList.remove("flipped");
+          inner.classList.remove("is-flipped");
           setTimeout(function () {
             GameState.advanceCard();
             var st = GameState.getState();
