@@ -20,20 +20,25 @@
     uxDebt: { greenMax: -1, yellowMax: 2 }
   };
 
-  function getSemaphoreState(key, value) {
+  /** Único mapeo valor → zona semáforo: "bien" | "riesgo" | "critico". */
+  function getStatusForMetric(key, value) {
     var s = SEMAPHORE[key];
-    if (!s) return "yellow";
+    if (!s) return "riesgo";
     if (s.greenMin !== undefined) {
-      if (value >= s.greenMin) return "green";
-      if (value >= s.yellowMin) return "yellow";
-      return "red";
+      if (value >= s.greenMin) return "bien";
+      if (value >= s.yellowMin) return "riesgo";
+      return "critico";
     }
     if (s.greenMax !== undefined) {
-      if (value <= s.greenMax) return "green";
-      if (value <= s.yellowMax) return "yellow";
-      return "red";
+      if (value <= s.greenMax) return "bien";
+      if (value <= s.yellowMax) return "riesgo";
+      return "critico";
     }
-    return "yellow";
+    return "riesgo";
+  }
+
+  function getSemaphoreState(key, value) {
+    return getStatusForMetric(key, value);
   }
 
   function getBarFillPct(key, value) {
@@ -49,9 +54,10 @@
   }
 
   function getPillLabel(sem) {
-    if (sem === "green") return "Bien";
-    if (sem === "yellow") return "Riesgo";
-    return "Crítico";
+    if (sem === "bien") return "Bien";
+    if (sem === "riesgo") return "Riesgo";
+    if (sem === "critico") return "Crítico";
+    return "Riesgo";
   }
 
   function escapeHtml(str) {
@@ -61,7 +67,7 @@
   }
 
   function formatMetricValue(key, value) {
-    if (value === 0) return "0";
+    if (value === 0) return "—";
     var sign = value > 0 ? "+" : "";
     if (key === "conversion") return sign + value + " pts";
     if (key === "support") return sign + value + " tickets/sem";
@@ -80,6 +86,12 @@
     if (key === "revenue") return sign + value + " pts";
     if (key === "uxDebt") return sign + value + " pts";
     return sign + value;
+  }
+
+  /** Solo número con signo para el indicador junto a la flecha (sin unidad). Para delta 0 devuelve "". */
+  function formatDeltaArrow(value) {
+    if (value === 0) return "";
+    return (value > 0 ? "+" : "") + value;
   }
 
   function formatDeltaForResult(delta) {
@@ -166,25 +178,33 @@
     );
   }
 
-  function metricRow(metricKey, value, recentChangeStr, isAffected) {
+  function metricRow(metricKey, value, isAffected, deltaValue) {
     var label = METRIC_LABELS[metricKey] || metricKey;
     var valStr = formatMetricValue(metricKey, value);
-    var sem = getSemaphoreState(metricKey, value);
+    var sem = getStatusForMetric(metricKey, value);
     var pulseCls = isAffected ? " metric-pulse" : "";
-    var barPct = getBarFillPct(metricKey, value).toFixed(0);
-    var barMin = Math.max(0, parseInt(barPct, 10));
-    if (barMin === 0 && value !== 0) barMin = 4;
+    var barPct = getBarFillPct(metricKey, value);
+    var barPctClamp = Math.max(0, Math.min(100, Math.round(barPct)));
+    if (barPctClamp === 0 && value !== 0) barPctClamp = 4;
     var pillText = getPillLabel(sem);
-    var changeHtml = recentChangeStr ? "<span class=\"metric-change\">" + escapeHtml(recentChangeStr) + "</span>" : "";
+    var deltaHtml = "";
+    if (deltaValue !== undefined) {
+      var arrow = deltaValue > 0 ? "↑" : deltaValue < 0 ? "↓" : "→";
+      var deltaCls = deltaValue > 0 ? "metric-delta-up" : deltaValue < 0 ? "metric-delta-down" : "metric-delta-neutral";
+      var numStr = deltaValue !== 0 ? "<span class=\"metric-delta-num\">" + escapeHtml(formatDeltaArrow(deltaValue)) + "</span>" : "";
+      deltaHtml = "<span class=\"metric-delta-indicator " + deltaCls + "\"><span class=\"metric-delta-arrow\">" + escapeHtml(arrow) + "</span>" + numStr + "</span>";
+    }
     return (
       "<div class=\"metric-row sem-" + sem + pulseCls + "\" data-metric=\"" + escapeHtml(metricKey) + "\">" +
         "<div class=\"metric-header\">" +
           "<span class=\"metric-label\">" + escapeHtml(label) + "</span>" +
           "<span class=\"metric-value\">" + escapeHtml(valStr) + "</span>" +
           "<span class=\"status-pill sem-" + sem + "\">" + escapeHtml(pillText) + "</span>" +
+          deltaHtml +
         "</div>" +
-        (changeHtml ? "<div class=\"metric-recent\">" + changeHtml + "</div>" : "") +
-        "<div class=\"metric-bar\" role=\"presentation\"><span class=\"metric-bar-fill\" style=\"width:" + barMin + "%\"></span></div>" +
+        "<div class=\"metric-bar-wrap\">" +
+          "<div class=\"metric-bar\" role=\"presentation\"><span class=\"metric-bar-fill metric-bar-gradient\" style=\"width:" + barPctClamp + "%\"></span></div>" +
+        "</div>" +
       "</div>"
     );
   }
@@ -197,6 +217,9 @@
     var lastResult = GameState.getLastResult();
     var cardIndex = st.cardIndex;
     var total = CARDS.length;
+    var cardsPerLevel = 5;
+    var levelNum = cardIndex < cardsPerLevel ? 1 : 2;
+    var cardInLevel = (cardIndex % cardsPerLevel) + 1;
 
     if (cardIndex >= total) {
       GameState.setScreen("end");
@@ -218,15 +241,25 @@
 
     var metricsHtml = "";
     var keys = GameState.METRIC_KEYS || ["conversion", "support", "satisfaction", "revenue", "uxDebt"];
-    var affectedKeys = lastResult && lastResult.delta ? Object.keys(lastResult.delta) : [];
+    var deltasByKey = {};
+    if (lastResult) {
+      var isInvestigarOnly = lastResult.note && (!lastResult.delta || Object.keys(lastResult.delta).length === 0);
+      if (isInvestigarOnly) {
+        for (var z = 0; z < keys.length; z++) deltasByKey[keys[z]] = 0;
+      } else if (history.length >= 2) {
+        var prev = history[history.length - 2];
+        var curr = history[history.length - 1];
+        for (var d = 0; d < keys.length; d++) {
+          var k = keys[d];
+          deltasByKey[k] = curr[k] - prev[k];
+        }
+      }
+    }
     for (var m = 0; m < keys.length; m++) {
       var key = keys[m];
-      var isAffected = affectedKeys.indexOf(key) !== -1;
-      var recentStr = "";
-      if (lastResult && lastResult.delta && lastResult.delta[key] !== undefined && lastResult.delta[key] !== 0) {
-        recentStr = formatDeltaShort(key, lastResult.delta[key]);
-      }
-      metricsHtml += metricRow(key, metrics[key], recentStr, isAffected);
+      var deltaVal = deltasByKey[key];
+      var isAffected = deltaVal !== undefined && deltaVal !== 0;
+      metricsHtml += metricRow(key, metrics[key], isAffected, deltaVal);
     }
 
     var impactCardHtml = "";
@@ -254,8 +287,9 @@
       "<section id=\"screen-game\" class=\"screen screen-game\">" +
         "<div class=\"game-wrap\">" +
           "<header class=\"game-header card\">" +
-            "<span class=\"header-level header-badge\">Nivel 1</span>" +
-            "<span class=\"header-progress header-badge\">Carta <span id=\"card-index\">" + (cardIndex + 1) + "</span>/<span id=\"card-total\">" + total + "</span></span>" +
+            "<span class=\"header-level header-badge\">Nivel " + levelNum + "</span>" +
+            "<span class=\"header-progress header-badge\">Carta <span id=\"card-index\">" + cardInLevel + "</span>/<span id=\"card-total\">" + cardsPerLevel + "</span></span>" +
+            "<button type=\"button\" id=\"btn-restart\" class=\"btn btn-header-restart\">Reiniciar</button>" +
           "</header>" +
           "<div class=\"game-grid\">" +
             "<article id=\"main-card\" class=\"card game-card card-transition\">" +
@@ -268,7 +302,6 @@
             "<aside class=\"card sidebar dashboard-panel dashboard-tablero\">" +
               "<h3 class=\"sidebar-title\">Métricas</h3>" +
               "<div class=\"metrics-list\">" + metricsHtml + "</div>" +
-              "<button type=\"button\" id=\"btn-restart\" class=\"btn btn-secondary\">Reiniciar</button>" +
             "</aside>" +
           "</div>" +
         "</div>" +
@@ -277,14 +310,14 @@
   }
 
   function getEstadoFinal(metrics, keys) {
-    var green = 0, red = 0;
+    var bien = 0, critico = 0;
     for (var i = 0; i < keys.length; i++) {
-      var sem = getSemaphoreState(keys[i], metrics[keys[i]]);
-      if (sem === "green") green++;
-      if (sem === "red") red++;
+      var sem = getStatusForMetric(keys[i], metrics[keys[i]]);
+      if (sem === "bien") bien++;
+      if (sem === "critico") critico++;
     }
-    if (green >= 4 && red === 0) return { label: "estable", text: "Tu sistema terminó estable: la mayoría de métricas en rango saludable." };
-    if (red >= 3) return { label: "reactivo", text: "Tu sistema terminó reactivo: varias métricas en zona crítica. La deuda y los trade-offs se acumularon." };
+    if (bien >= 4 && critico === 0) return { label: "estable", text: "Tu sistema terminó estable: la mayoría de métricas en rango saludable." };
+    if (critico >= 3) return { label: "reactivo", text: "Tu sistema terminó reactivo: varias métricas en zona crítica. La deuda y los trade-offs se acumularon." };
     return { label: "tensionado", text: "Tu sistema terminó tensionado: algunas métricas bien, otras en riesgo. Consecuencia de priorizar y dejar deuda." };
   }
 
@@ -296,7 +329,7 @@
     var rows = "";
     for (var i = 0; i < keys.length; i++) {
       var key = keys[i];
-      rows += metricRow(key, metrics[key], "", false);
+      rows += metricRow(key, metrics[key], false);
     }
     var estado = getEstadoFinal(metrics, keys);
     return (
@@ -311,6 +344,36 @@
         "</div>" +
       "</section>"
     );
+  }
+
+  function showLevelInterstitial(levelNum, onComplete) {
+    var app = document.getElementById("app");
+    if (!app) { if (onComplete) onComplete(); return; }
+    var keys = GameState.METRIC_KEYS || ["conversion", "support", "satisfaction", "revenue", "uxDebt"];
+    var summary = "";
+    var h = GameState.getHistory();
+    if (h && h.length >= 6) {
+      var start = h[0];
+      var end = h[5];
+      var up = 0, down = 0;
+      for (var i = 0; i < keys.length; i++) {
+        var d = end[keys[i]] - start[keys[i]];
+        if (d > 0) up++;
+        else if (d < 0) down++;
+      }
+      summary = "<p class=\"intro-subtitle level-summary\">En este nivel: " + up + " métrica(s) subieron, " + down + " bajaron.</p>";
+    }
+    app.innerHTML = "<section id=\"screen-level-complete\" class=\"screen screen-level-complete\">" +
+      "<div class=\"screen-inner intro-board\">" +
+        "<div class=\"intro-card\">" +
+          "<span class=\"intro-badge\" aria-hidden=\"true\">Nivel " + levelNum + " completado</span>" +
+          "<h2 class=\"intro-title\">Nivel " + levelNum + " completado</h2>" +
+          "<p class=\"intro-subtitle\">Preparando Nivel " + (levelNum + 1) + "…</p>" +
+          summary +
+        "</div>" +
+      "</div>" +
+    "</section>";
+    setTimeout(function () { if (onComplete) onComplete(); }, 2500);
   }
 
   function render() {
@@ -330,6 +393,12 @@
     else html = introScreen();
     app.innerHTML = html;
     bindEvents();
+    if (screen === "game" && GameState.getLastResult()) {
+      setTimeout(function () {
+        var indicators = document.querySelectorAll(".metric-delta-indicator");
+        for (var i = 0; i < indicators.length; i++) indicators[i].classList.add("metric-delta-fade");
+      }, 1800);
+    }
   }
 
   function bindEvents() {
@@ -378,6 +447,12 @@
         if (DEBUG) console.log("[DEBUG] advanceCard (Continuar)", st);
         if (st.cardIndex >= CARDS.length) {
           GameState.setScreen("end");
+          render();
+          return;
+        }
+        if (st.cardIndex === 5) {
+          showLevelInterstitial(1, function () { render(); });
+          return;
         }
         render();
       });
