@@ -186,7 +186,6 @@
     var barPct = getBarFillPct(metricKey, value);
     var barPctClamp = Math.max(0, Math.min(100, Math.round(barPct)));
     if (barPctClamp === 0 && value !== 0) barPctClamp = 4;
-    var pillText = getPillLabel(sem);
     var deltaHtml = "";
     if (deltaValue !== undefined) {
       var arrow = deltaValue > 0 ? "↑" : deltaValue < 0 ? "↓" : "→";
@@ -199,7 +198,6 @@
         "<div class=\"metric-header\">" +
           "<span class=\"metric-label\">" + escapeHtml(label) + "</span>" +
           "<span class=\"metric-value\">" + escapeHtml(valStr) + "</span>" +
-          "<span class=\"status-pill sem-" + sem + "\">" + escapeHtml(pillText) + "</span>" +
           deltaHtml +
         "</div>" +
         "<div class=\"metric-bar-wrap\">" +
@@ -262,8 +260,9 @@
       metricsHtml += metricRow(key, metrics[key], isAffected, deltaVal);
     }
 
-    var impactCardHtml = "";
-    if (lastResult && (lastResult.note || (lastResult.delta && Object.keys(lastResult.delta).length))) {
+    var hasLastResult = lastResult && (lastResult.note || (lastResult.delta && Object.keys(lastResult.delta).length));
+    var cardBackHtml = "";
+    if (hasLastResult) {
       var deltaParts = [];
       if (lastResult.delta) {
         for (var d = 0; d < keys.length; d++) {
@@ -275,11 +274,14 @@
       }
       var impactList = deltaParts.length ? "<ul class=\"impact-list\">" + deltaParts.join("") + "</ul>" : "";
       var impactNote = lastResult.note ? "<p class=\"impact-note\">" + escapeHtml(lastResult.note) + "</p>" : "";
-      impactCardHtml = "<div class=\"impact-card\">" +
-        "<h3 class=\"impact-title\">Último impacto</h3>" +
-        impactList +
-        impactNote +
-        "<button type=\"button\" id=\"btn-impact-continue\" class=\"btn btn-primary impact-cta\">Continuar</button>" +
+      cardBackHtml =
+        "<div class=\"card-face card-back\">" +
+          "<div class=\"card-back-inner card game-card\">" +
+            "<h3 class=\"impact-title\">Impacto</h3>" +
+            impactList +
+            impactNote +
+            "<button type=\"button\" id=\"btn-impact-continue\" class=\"btn btn-primary impact-cta\">Continuar</button>" +
+          "</div>" +
         "</div>";
     }
 
@@ -292,13 +294,19 @@
             "<button type=\"button\" id=\"btn-restart\" class=\"btn btn-header-restart\">Reiniciar</button>" +
           "</header>" +
           "<div class=\"game-grid\">" +
-            "<article id=\"main-card\" class=\"card game-card card-transition\">" +
-              "<h2 id=\"card-title\" class=\"card-title\">" + escapeHtml(card.title) + "</h2>" +
-              "<p id=\"card-situation\" class=\"card-situation\">" + escapeHtml(card.situation) + "</p>" +
-              "<div id=\"options\" class=\"options\">" + optionsHtml + "</div>" +
-              (investigarHtml ? "<div class=\"investigar-wrap\">" + investigarHtml + "</div>" : "") +
-              "<div id=\"result-area\" class=\"result-area\">" + impactCardHtml + "</div>" +
-            "</article>" +
+            "<div id=\"card-flip-container\" class=\"card-flip-container\">" +
+              "<div id=\"card-flip-inner\" class=\"card-flip-inner\">" +
+                "<div class=\"card-face card-front\">" +
+                  "<article class=\"card game-card\">" +
+                    "<h2 id=\"card-title\" class=\"card-title\">" + escapeHtml(card.title) + "</h2>" +
+                    "<p id=\"card-situation\" class=\"card-situation\">" + escapeHtml(card.situation) + "</p>" +
+                    "<div id=\"options\" class=\"options\">" + optionsHtml + "</div>" +
+                    (investigarHtml ? "<div class=\"investigar-wrap\">" + investigarHtml + "</div>" : "") +
+                  "</article>" +
+                "</div>" +
+                (cardBackHtml || "") +
+              "</div>" +
+            "</div>" +
             "<aside class=\"card sidebar dashboard-panel dashboard-tablero\">" +
               "<h3 class=\"sidebar-title\">Métricas</h3>" +
               "<div class=\"metrics-list\">" + metricsHtml + "</div>" +
@@ -368,12 +376,12 @@
         "<div class=\"intro-card\">" +
           "<span class=\"intro-badge\" aria-hidden=\"true\">Nivel " + levelNum + " completado</span>" +
           "<h2 class=\"intro-title\">Nivel " + levelNum + " completado</h2>" +
-          "<p class=\"intro-subtitle\">Preparando Nivel " + (levelNum + 1) + "…</p>" +
+          "<p class=\"intro-subtitle\">Siguiente nivel…</p>" +
           summary +
         "</div>" +
       "</div>" +
     "</section>";
-    setTimeout(function () { if (onComplete) onComplete(); }, 2500);
+    setTimeout(function () { if (onComplete) onComplete(); }, 2000);
   }
 
   function render() {
@@ -393,11 +401,22 @@
     else html = introScreen();
     app.innerHTML = html;
     bindEvents();
-    if (screen === "game" && GameState.getLastResult()) {
-      setTimeout(function () {
-        var indicators = document.querySelectorAll(".metric-delta-indicator");
-        for (var i = 0; i < indicators.length; i++) indicators[i].classList.add("metric-delta-fade");
-      }, 1800);
+    if (screen === "game") {
+      var lastRes = GameState.getLastResult();
+      if (lastRes) {
+        var inner = document.getElementById("card-flip-inner");
+        if (inner) {
+          requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+              inner.classList.add("flipped");
+            });
+          });
+        }
+        setTimeout(function () {
+          var indicators = document.querySelectorAll(".metric-delta-indicator");
+          for (var i = 0; i < indicators.length; i++) indicators[i].classList.add("metric-delta-fade");
+        }, 1800);
+      }
     }
   }
 
@@ -442,19 +461,36 @@
     var btnImpactContinue = document.getElementById("btn-impact-continue");
     if (btnImpactContinue) {
       btnImpactContinue.addEventListener("click", function () {
-        GameState.advanceCard();
-        var st = GameState.getState();
-        if (DEBUG) console.log("[DEBUG] advanceCard (Continuar)", st);
-        if (st.cardIndex >= CARDS.length) {
-          GameState.setScreen("end");
-          render();
-          return;
+        var inner = document.getElementById("card-flip-inner");
+        if (inner) {
+          inner.classList.remove("flipped");
+          setTimeout(function () {
+            GameState.advanceCard();
+            var st = GameState.getState();
+            if (DEBUG) console.log("[DEBUG] advanceCard (Continuar)", st);
+            if (st.cardIndex >= CARDS.length) {
+              GameState.setScreen("end");
+              render();
+              return;
+            }
+            if (st.cardIndex === 5) {
+              showLevelInterstitial(1, function () { render(); });
+              return;
+            }
+            render();
+          }, 300);
+        } else {
+          GameState.advanceCard();
+          var st = GameState.getState();
+          if (st.cardIndex >= CARDS.length) {
+            GameState.setScreen("end");
+            render();
+          } else if (st.cardIndex === 5) {
+            showLevelInterstitial(1, function () { render(); });
+          } else {
+            render();
+          }
         }
-        if (st.cardIndex === 5) {
-          showLevelInterstitial(1, function () { render(); });
-          return;
-        }
-        render();
       });
     }
 
